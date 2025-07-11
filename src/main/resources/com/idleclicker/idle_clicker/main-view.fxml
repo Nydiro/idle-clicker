@@ -5,6 +5,7 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
@@ -18,7 +19,8 @@
     <left>
         <VBox alignment="TOP_CENTER" spacing="20.0" BorderPane.alignment="TOP_LEFT">
             <padding>
-                <Insets right="20.0" /> </padding>
+                <Insets right="20.0" />
+            </padding>
             <Label fx:id="moneyLabel" text="Geld: 0.00 €">
                 <font>
                     <Font size="24.0" />
@@ -29,7 +31,7 @@
                     <Font size="18.0" />
                 </font>
             </Button>
-            </VBox>
+        </VBox>
     </left>
 
     <center>
@@ -46,19 +48,21 @@
                     <TableColumn fx:id="priceColumn" prefWidth="100.0" text="Preis (€)" />
                     <TableColumn fx:id="sectorColumn" prefWidth="120.0" text="Sektor" />
                     <TableColumn fx:id="volatilityColumn" prefWidth="80.0" text="Volatilität" />
-                    </columns>
+                    <TableColumn fx:id="ownedSharesColumn" prefWidth="100.0" text="Deine Anteile" /> </columns>
             </TableView>
             <HBox alignment="CENTER" spacing="10.0">
-                <Button onAction="#buyStock" text="Kaufen" />
+                <Label text="Menge:"/>
+                <TextField fx:id="quantityTextField" prefWidth="80.0" text="1"/> <Button onAction="#buyStock" text="Kaufen" />
                 <Button onAction="#sellStock" text="Verkaufen" />
-                </HBox>
-        </VBox>
+            </HBox>
+            <Label fx:id="messageLabel" textFill="RED"/> </VBox>
     </center>
 
     <right>
         <VBox alignment="TOP_CENTER" spacing="20.0" BorderPane.alignment="TOP_RIGHT">
             <padding>
-                <Insets left="20.0" /> </padding>
+                <Insets left="20.0" />
+            </padding>
             <Label text="Dein Portfolio">
                 <font>
                     <Font size="24.0" />
@@ -67,8 +71,5 @@
             <Label text="Noch leer..." />
         </VBox>
     </right>
-
-    <bottom>
-        </bottom>
 
 </BorderPane>
