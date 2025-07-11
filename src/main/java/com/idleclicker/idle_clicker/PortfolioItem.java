@@ -11,14 +11,21 @@ import javafx.beans.property.StringProperty;
 public class PortfolioItem {
     private final StringProperty symbol;
     private final StringProperty name;
-    private final IntegerProperty quantity; // Anzahl der besessenen Anteile
-    private final DoubleProperty currentValue; // Aktueller Gesamtwert dieser Position
+    private final IntegerProperty quantity;
+    private final DoubleProperty currentValue;
+    // NEUE PROPERTY für den durchschnittlichen Kaufpreis
+    private final DoubleProperty averageBuyPrice;
+    // NEUE PROPERTY für den prozentualen Gewinn/Verlust
+    private final DoubleProperty profitLossPercent;
 
-    public PortfolioItem(String symbol, String name, int quantity, double initialPrice) {
+    public PortfolioItem(String symbol, String name, int quantity, double averageBuyPrice) {
         this.symbol = new SimpleStringProperty(symbol);
         this.name = new SimpleStringProperty(name);
         this.quantity = new SimpleIntegerProperty(quantity);
-        this.currentValue = new SimpleDoubleProperty(quantity * initialPrice); // Initialwert setzen
+        this.averageBuyPrice = new SimpleDoubleProperty(averageBuyPrice); // Initialwert setzen
+        this.currentValue = new SimpleDoubleProperty(quantity * averageBuyPrice); // Initialwert basierend auf Kaufpreis
+        this.profitLossPercent = new SimpleDoubleProperty(0.0); // Initialisierung
+        updateProfitLossPercent(); // Initialberechnung
     }
 
     // Getter für JavaFX TableView
@@ -54,6 +61,25 @@ public class PortfolioItem {
         return currentValue;
     }
 
+    // NEUER GETTER und PROPERTY für durchschnittlichen Kaufpreis
+    public double getAverageBuyPrice() {
+        return averageBuyPrice.get();
+    }
+
+    public DoubleProperty averageBuyPriceProperty() {
+        return averageBuyPrice;
+    }
+
+    // NEUER GETTER und PROPERTY für prozentualen Gewinn/Verlust
+    public double getProfitLossPercent() {
+        return profitLossPercent.get();
+    }
+
+    public DoubleProperty profitLossPercentProperty() {
+        return profitLossPercent;
+    }
+
+
     // Setter für die Menge und den Wert, die von der Logik (GameController) aktualisiert werden
     public void setQuantity(int quantity) {
         this.quantity.set(quantity);
@@ -61,5 +87,24 @@ public class PortfolioItem {
 
     public void setCurrentValue(double value) {
         this.currentValue.set(value);
+        updateProfitLossPercent(); // Neu: Prozentsatz aktualisieren, wenn sich der Wert ändert
+    }
+
+    // NEUER SETTER für den durchschnittlichen Kaufpreis
+    public void setAverageBuyPrice(double price) {
+        this.averageBuyPrice.set(price);
+        updateProfitLossPercent(); // Neu: Prozentsatz aktualisieren, wenn sich der Kaufpreis ändert
+    }
+
+    // NEUE METHODE: Berechnet und aktualisiert den prozentualen Gewinn/Verlust
+    public void updateProfitLossPercent() {
+        if (averageBuyPrice.get() > 0 && quantity.get() > 0) { // Nur berechnen, wenn Aktien vorhanden sind und Kaufpreis > 0
+            double currentTotalValue = currentValue.get();
+            double originalTotalCost = averageBuyPrice.get() * quantity.get();
+            double percent = ((currentTotalValue - originalTotalCost) / originalTotalCost) * 100.0;
+            profitLossPercent.set(percent);
+        } else {
+            profitLossPercent.set(0.0); // Wenn keine Aktien (oder kein Kaufpreis), dann 0%
+        }
     }
 }

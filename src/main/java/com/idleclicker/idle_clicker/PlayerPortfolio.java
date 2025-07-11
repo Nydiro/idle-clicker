@@ -1,47 +1,79 @@
 package com.idleclicker.idle_clicker;
 
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableMap;
 import org.springframework.stereotype.Component;
 
-@Component // Macht dies zu einer Spring-Komponente, falls es direkt injiziert werden soll
+import java.util.HashMap; // Jetzt verwendet
+import java.util.Map;     // Jetzt verwendet
+
+@Component
 public class PlayerPortfolio {
 
-    // Speichert die Anzahl der Anteile pro Aktiensymbol
-    // ObservableMap für automatische UI-Updates, falls ein TableView direkt daran gebunden wird
+    // Speichert die Anzahl der besessenen Anteile pro Aktiensymbol
     private final ObservableMap<String, IntegerProperty> ownedShares = FXCollections.observableHashMap();
+    // NEU: Speichert den durchschnittlichen Kaufpreis pro Aktiensymbol
+    private final Map<String, Double> averageBuyPrices = new HashMap<>();
+    // NEU: Speichert die realisierten Gewinne/Verluste
+    private final DoubleProperty realizedProfitLoss = new SimpleDoubleProperty(0.0);
 
-    // Methode zum Hinzufügen von Anteilen
-    public void addShares(String symbol, int quantity) {
-        ownedShares.computeIfAbsent(symbol, k -> new SimpleIntegerProperty(0))
-                   .set(ownedShares.get(symbol).get() + quantity);
-        System.out.println("Portfolio aktualisiert: " + quantity + " Anteile von " + symbol + " hinzugefügt.");
-    }
 
-    // Methode zum Entfernen von Anteilen
-    public void removeShares(String symbol, int quantity) {
-        IntegerProperty currentQuantity = ownedShares.get(symbol);
-        if (currentQuantity != null && currentQuantity.get() >= quantity) {
-            currentQuantity.set(currentQuantity.get() - quantity);
-            if (currentQuantity.get() == 0) {
-                ownedShares.remove(symbol); // Entferne den Eintrag, wenn 0 Anteile
-            }
-            System.out.println("Portfolio aktualisiert: " + quantity + " Anteile von " + symbol + " entfernt.");
-        } else {
-            System.err.println("Fehler: Nicht genug Anteile von " + symbol + " zum Entfernen.");
-        }
-    }
-
-    // Getter für die Anzahl der Anteile einer bestimmten Aktie
-    public int getShares(String symbol) {
-        IntegerProperty quantity = ownedShares.get(symbol);
-        return (quantity != null) ? quantity.get() : 0;
-    }
-
-    // Getter für die gesamte ObservableMap (für UI-Binding)
     public ObservableMap<String, IntegerProperty> getOwnedShares() {
         return ownedShares;
+    }
+
+    // NEUER GETTER für realisierte Gewinne/Verluste
+    public DoubleProperty realizedProfitLossProperty() {
+        return realizedProfitLoss;
+    }
+
+    // NEUER GETTER: Gibt die Anzahl der Anteile für ein bestimmtes Symbol zurück
+    public int getShares(String symbol) {
+        return ownedShares.getOrDefault(symbol, new SimpleIntegerProperty(0)).get();
+    }
+
+    // NEUER GETTER: Gibt den durchschnittlichen Kaufpreis für ein Symbol zurück
+    public double getAverageBuyPrice(String symbol) {
+        return averageBuyPrices.getOrDefault(symbol, 0.0);
+    }
+
+    // Überarbeitete Methode zum Hinzufügen von Anteilen (jetzt mit Kaufpreis)
+    public void addShares(String symbol, int quantity, double buyPrice) {
+        // Ermittle die aktuelle Menge und den aktuellen Gesamtwert der Position
+        int currentQuantity = getShares(symbol);
+        double currentTotalCost = averageBuyPrices.getOrDefault(symbol, 0.0) * currentQuantity;
+
+        // Berechne den neuen Gesamtwert und die neue Gesamtmenge
+        double newTotalCost = currentTotalCost + (buyPrice * quantity);
+        int newQuantity = currentQuantity + quantity;
+
+        // Aktualisiere den durchschnittlichen Kaufpreis
+        averageBuyPrices.put(symbol, newTotalCost / newQuantity);
+
+        // Aktualisiere die Menge
+        ownedShares.computeIfAbsent(symbol, k -> new SimpleIntegerProperty(0)).set(newQuantity);
+    }
+
+    // Überarbeitete Methode zum Entfernen von Anteilen (jetzt mit Verkaufspreis und durchschnittlichem Kaufpreis)
+    public void removeShares(String symbol, int quantity, double sellPrice, double currentAverageBuyPrice) {
+        if (getShares(symbol) >= quantity) {
+            // Berechne den Gewinn/Verlust aus diesem Verkauf
+            double profitOrLoss = (sellPrice - currentAverageBuyPrice) * quantity;
+            realizedProfitLoss.set(realizedProfitLoss.get() + profitOrLoss);
+
+            // Aktualisiere die Menge der Anteile
+            int newQuantity = getShares(symbol) - quantity;
+            if (newQuantity <= 0) {
+                ownedShares.remove(symbol);
+                averageBuyPrices.remove(symbol); // Entferne auch den durchschnittlichen Kaufpreis, wenn keine Aktien mehr gehalten werden
+            } else {
+                ownedShares.get(symbol).set(newQuantity);
+                // Der durchschnittliche Kaufpreis bleibt unverändert, wenn nur teilweise verkauft wird.
+            }
+        }
     }
 }
