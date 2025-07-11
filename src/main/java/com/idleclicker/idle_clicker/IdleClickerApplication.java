@@ -2,11 +2,17 @@ package com.idleclicker.idle_clicker;
 
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.stage.Stage;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
+
+import java.io.IOException;
+import java.net.URL; // Import für URL
 
 public class IdleClickerApplication extends Application {
 
@@ -14,11 +20,8 @@ public class IdleClickerApplication extends Application {
 
     @Override
     public void init() {
-        // Initialisiert den Spring ApplicationContext
-        // und registriert diese JavaFX Application Instanz als Spring Bean.
-        // Launcher.class ist die Klasse mit @SpringBootApplication
         applicationContext = new SpringApplicationBuilder(Launcher.class)
-                .sources(IdleClickerApplication.class) // Füge diese Klasse als Spring-Quelle hinzu
+                .sources(IdleClickerApplication.class)
                 .initializers((ApplicationContextInitializer<GenericApplicationContext>) applicationContext -> {
                     applicationContext.registerBean(Application.class, () -> this);
                 })
@@ -26,26 +29,32 @@ public class IdleClickerApplication extends Application {
     }
 
     @Override
-    public void start(Stage stage) throws Exception {
-        // Dies ist die Hauptmethode für deine JavaFX UI.
-        // Aktuell zeigt sie nur ein leeres Fenster.
-        stage.setTitle("Idle Clicker Game");
-        stage.setWidth(800);
-        stage.setHeight(600);
+    public void start(Stage stage) throws IOException {
+        // NEUE GEÄNDERTE ZEILE: Laden über den Thread-Kontext-ClassLoader
+        URL fxmlLocation = Thread.currentThread().getContextClassLoader().getResource("com/idleclicker/idle_clicker/main-view.fxml");
+
+        if (fxmlLocation == null) {
+            System.err.println("Fehler: main-view.fxml nicht gefunden im Classpath unter com/idleclicker/idle_clicker/");
+            throw new IOException("FXML-Datei nicht gefunden: com/idleclicker/idle_clicker/main-view.fxml");
+        }
+
+        FXMLLoader fxmlLoader = new FXMLLoader(fxmlLocation);
+        fxmlLoader.setControllerFactory(applicationContext::getBean);
+
+        Parent root = fxmlLoader.load();
+
+        stage.setTitle("Idle Clicker Game: Tellerwäscher");
+        stage.setScene(new Scene(root, 800, 600));
         stage.show();
     }
 
     @Override
     public void stop() {
-        // Schließt den Spring ApplicationContext, wenn die JavaFX-App beendet wird.
         applicationContext.close();
-        // Platform.exit() ist wichtig, um den JavaFX-Thread sauber zu beenden
         Platform.exit();
     }
 
     public static void main(String[] args) {
-        // Startet die JavaFX-Anwendung
-        // Diese Methode ist der wahre Einstiegspunkt deines Programms
         launch(args);
     }
 }
