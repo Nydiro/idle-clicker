@@ -48,14 +48,17 @@
                     <TableColumn fx:id="priceColumn" prefWidth="100.0" text="Preis (€)" />
                     <TableColumn fx:id="sectorColumn" prefWidth="120.0" text="Sektor" />
                     <TableColumn fx:id="volatilityColumn" prefWidth="80.0" text="Volatilität" />
-                    <TableColumn fx:id="ownedSharesColumn" prefWidth="100.0" text="Deine Anteile" /> </columns>
+                    <TableColumn fx:id="ownedSharesColumn" prefWidth="100.0" text="Deine Anteile" />
+                </columns>
             </TableView>
             <HBox alignment="CENTER" spacing="10.0">
                 <Label text="Menge:"/>
-                <TextField fx:id="quantityTextField" prefWidth="80.0" text="1"/> <Button onAction="#buyStock" text="Kaufen" />
+                <TextField fx:id="quantityTextField" prefWidth="80.0" text="1"/>
+                <Button onAction="#buyStock" text="Kaufen" />
                 <Button onAction="#sellStock" text="Verkaufen" />
             </HBox>
-            <Label fx:id="messageLabel" textFill="RED"/> </VBox>
+            <Label fx:id="messageLabel" textFill="RED"/>
+        </VBox>
     </center>
 
     <right>
@@ -68,7 +71,16 @@
                     <Font size="24.0" />
                 </font>
             </Label>
-            <Label text="Noch leer..." />
+            <TableView fx:id="portfolioTableView" prefHeight="250.0" prefWidth="250.0"> <columns>
+                    <TableColumn fx:id="portfolioSymbolColumn" prefWidth="75.0" text="Symbol" />
+                    <TableColumn fx:id="portfolioQuantityColumn" prefWidth="75.0" text="Menge" />
+                    <TableColumn fx:id="portfolioValueColumn" prefWidth="100.0" text="Wert (€)" />
+                </columns>
+            </TableView>
+            <Label fx:id="totalPortfolioValueLabel" text="Gesamtwert: 0.00 €"> <font>
+                    <Font size="18.0" />
+                </font>
+            </Label>
         </VBox>
     </right>
 

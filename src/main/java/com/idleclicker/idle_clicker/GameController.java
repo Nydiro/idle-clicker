@@ -2,7 +2,6 @@ package com.idleclicker.idle_clicker;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -14,6 +13,9 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.util.Duration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 public class GameController {
@@ -28,7 +30,7 @@ public class GameController {
     @FXML
     private TableColumn<Stock, String> symbolColumn;
     @FXML
-    private TableColumn<Stock, String> nameColumn;
+  private TableColumn<Stock, String> nameColumn;
     @FXML
     private TableColumn<Stock, Double> priceColumn;
     @FXML
@@ -36,11 +38,24 @@ public class GameController {
     @FXML
     private TableColumn<Stock, String> volatilityColumn;
     @FXML
-    private TableColumn<Stock, Integer> ownedSharesColumn; // NEUE SPALTE VERKNÜPFUNG
+    private TableColumn<Stock, Integer> ownedSharesColumn;
     @FXML
-    private TextField quantityTextField; // NEUES TEXTFELD VERKNÜPFUNG
+    private TextField quantityTextField;
     @FXML
-    private Label messageLabel; // Für Fehlermeldungen/Status
+    private Label messageLabel;
+
+    // --- FXML-Elemente für den Portfolio-Bereich ---
+    @FXML
+    private TableView<PortfolioItem> portfolioTableView;
+    @FXML
+    private TableColumn<PortfolioItem, String> portfolioSymbolColumn;
+    @FXML
+    private TableColumn<PortfolioItem, Integer> portfolioQuantityColumn;
+    @FXML
+    private TableColumn<PortfolioItem, Double> portfolioValueColumn;
+    @FXML
+    private Label totalPortfolioValueLabel;
+
 
     // --- Services ---
     @Autowired
@@ -50,7 +65,13 @@ public class GameController {
     @Autowired
     private PlayerPortfolio playerPortfolio;
 
-    private Timeline priceUpdateTimeline; // Für automatische Preisupdates
+    private Timeline priceUpdateTimeline;
+
+    // Map, um schnell auf PortfolioItem-Objekte zugreifen zu können, basierend auf dem Aktiensymbol
+    private Map<String, PortfolioItem> portfolioItemsMap = new HashMap<>();
+    // ObservableList für die Portfolio-Tabelle
+    private ObservableList<PortfolioItem> observablePortfolioItems = FXCollections.observableArrayList();
+
 
     // --- Initialisierung des Controllers ---
     @FXML
@@ -64,20 +85,57 @@ public class GameController {
         priceColumn.setCellValueFactory(data -> data.getValue().currentPriceProperty().asObject());
         sectorColumn.setCellValueFactory(new PropertyValueFactory<>("sector"));
         volatilityColumn.setCellValueFactory(new PropertyValueFactory<>("volatility"));
+        ownedSharesColumn.setCellValueFactory(data ->
+            playerPortfolio.getOwnedShares().computeIfAbsent(
+                data.getValue().getSymbol(), k -> new javafx.beans.property.SimpleIntegerProperty(0)
+            ).asObject()
+        );
 
-        // Binding für die "Deine Anteile"-Spalte
-        // Hier wird es etwas komplexer, da wir die Menge aus dem PlayerPortfolio holen müssen
-        ownedSharesColumn.setCellValueFactory(data -> {
-            String symbol = data.getValue().getSymbol();
-            // Die IntegerProperty aus der ownedShares-Map des PlayerPortfolio zurückgeben.
-            // computeIfAbsent stellt sicher, dass eine Property erstellt wird, wenn die Aktie noch nicht im Portfolio ist.
-            return playerPortfolio.getOwnedShares().computeIfAbsent(symbol, k -> new javafx.beans.property.SimpleIntegerProperty(0)).asObject();
-        });
-
-
-        // Setze die Daten für die Tabelle
+        // Setze die Daten für die Aktien-Tabelle
         ObservableList<Stock> stocks = FXCollections.observableArrayList(stockExchangeService.getAllStocks());
         stockTableView.setItems(stocks);
+
+        // Setup der Portfolio-Tabelle
+        portfolioSymbolColumn.setCellValueFactory(new PropertyValueFactory<>("symbol"));
+        portfolioQuantityColumn.setCellValueFactory(new PropertyValueFactory<>("quantity"));
+        portfolioValueColumn.setCellValueFactory(new PropertyValueFactory<>("currentValue"));
+
+        // Setze die Daten für die Portfolio-Tabelle
+        portfolioTableView.setItems(observablePortfolioItems);
+
+        // Initialisiere das Portfolio, falls der Spieler bereits Aktien besitzt (z.B. aus einem Savegame)
+        playerPortfolio.getOwnedShares().forEach((symbol, quantityProperty) -> {
+            Stock stock = stockExchangeService.getStockBySymbol(symbol);
+            if (stock != null) {
+                PortfolioItem item = new PortfolioItem(stock.getSymbol(), stock.getName(), quantityProperty.get(), stock.getCurrentPrice());
+                portfolioItemsMap.put(symbol, item);
+                observablePortfolioItems.add(item);
+            }
+        });
+
+        // Listener für Änderungen im PlayerPortfolio, um die Portfolio-Tabelle zu aktualisieren
+        playerPortfolio.getOwnedShares().addListener((javafx.collections.MapChangeListener<String, javafx.beans.property.IntegerProperty>) change -> {
+            if (change.wasAdded()) {
+                String symbol = change.getKey();
+                int quantity = change.getValueAdded().get();
+                Stock stock = stockExchangeService.getStockBySymbol(symbol);
+                if (stock != null) {
+                    PortfolioItem item = new PortfolioItem(stock.getSymbol(), stock.getName(), quantity, stock.getCurrentPrice());
+                    portfolioItemsMap.put(symbol, item);
+                    observablePortfolioItems.add(item);
+                }
+            } else if (change.wasRemoved()) {
+                String symbol = change.getKey();
+                PortfolioItem itemToRemove = portfolioItemsMap.remove(symbol);
+                if (itemToRemove != null) {
+                    observablePortfolioItems.remove(itemToRemove);
+                }
+            }
+            // Bei Mengenänderungen (innerhalb eines bestehenden Items) muss der Wert in der Timeline aktualisiert werden.
+            // Der quantityProperty Listener im PortfolioItem kümmert sich bereits darum, wenn seine Menge gesetzt wird.
+            // Die Aktualisierung des Wertes geschieht primär über die Preis-Updates.
+        });
+
 
         // Starte den Timer für regelmäßige Preis-Updates
         startPriceUpdateTimer();
@@ -87,7 +145,7 @@ public class GameController {
     @FXML
     private void washDish() {
         gameService.washDish();
-        messageLabel.setText(""); // Fehlermeldung löschen
+        messageLabel.setText("");
     }
 
     // --- Event-Handler für den Aktienmarkt-Bereich ---
@@ -116,9 +174,22 @@ public class GameController {
         if (gameService.canAfford(totalCost)) {
             gameService.spendMoney(totalCost);
             playerPortfolio.addShares(selectedStock.getSymbol(), quantity);
+
+            // Aktualisiere oder füge PortfolioItem hinzu
+            PortfolioItem item = portfolioItemsMap.get(selectedStock.getSymbol());
+            if (item == null) {
+                item = new PortfolioItem(selectedStock.getSymbol(), selectedStock.getName(), 0, selectedStock.getCurrentPrice());
+                portfolioItemsMap.put(selectedStock.getSymbol(), item);
+                observablePortfolioItems.add(item);
+            }
+            // Holen der tatsächlichen Menge aus dem PlayerPortfolio, falls es Updates gab (z.B. bei Mehrfachkäufen)
+            item.setQuantity(playerPortfolio.getShares(selectedStock.getSymbol()));
+            item.setCurrentValue(item.getQuantity() * selectedStock.getCurrentPrice());
+
             messageLabel.setText(quantity + "x " + selectedStock.getSymbol() + " gekauft für " + String.format("%.2f", totalCost) + " €.");
-            // Aktualisiere die Tabelle, um die neuen Anteile anzuzeigen (obwohl Binding helfen sollte)
             stockTableView.refresh();
+            updateTotalPortfolioValue();
+
         } else {
             messageLabel.setText("Nicht genug Geld, um " + quantity + "x " + selectedStock.getSymbol() + " zu kaufen.");
         }
@@ -149,9 +220,22 @@ public class GameController {
             double revenue = selectedStock.getCurrentPrice() * quantity;
             gameService.addMoney(revenue);
             playerPortfolio.removeShares(selectedStock.getSymbol(), quantity);
+
+            // Aktualisiere oder entferne PortfolioItem
+            PortfolioItem item = portfolioItemsMap.get(selectedStock.getSymbol());
+            if (item != null) {
+                int newQuantity = playerPortfolio.getShares(selectedStock.getSymbol());
+                item.setQuantity(newQuantity);
+                item.setCurrentValue(newQuantity * selectedStock.getCurrentPrice());
+                if (newQuantity == 0) { // Wenn Menge 0 ist, aus der Tabelle entfernen
+                    portfolioItemsMap.remove(selectedStock.getSymbol());
+                    observablePortfolioItems.remove(item);
+                }
+            }
+
             messageLabel.setText(quantity + "x " + selectedStock.getSymbol() + " verkauft für " + String.format("%.2f", revenue) + " €.");
-            // Aktualisiere die Tabelle
             stockTableView.refresh();
+            updateTotalPortfolioValue();
         } else {
             messageLabel.setText("Du besitzt nicht genug Anteile (" + owned + ") von " + selectedStock.getSymbol() + ".");
         }
@@ -159,13 +243,27 @@ public class GameController {
 
     // --- Methode für automatische Preisupdates ---
     private void startPriceUpdateTimer() {
-        // Aktualisiere die Preise jede Sekunde
         priceUpdateTimeline = new Timeline(new KeyFrame(Duration.seconds(1), event -> {
             stockExchangeService.updateStockPrices();
-            // Die TableView aktualisiert sich automatisch, da wir DoubleProperty/IntegerProperty verwenden.
-            // stockTableView.refresh(); // Dies ist bei Properties in der Regel nicht nötig, kann aber bei komplexeren Szenarien helfen
+            // Aktualisiere die Werte in der Portfolio-Tabelle, da sich die Preise geändert haben könnten
+            for (PortfolioItem item : observablePortfolioItems) {
+                Stock stock = stockExchangeService.getStockBySymbol(item.getSymbol());
+                if (stock != null) {
+                    item.setCurrentValue(item.getQuantity() * stock.getCurrentPrice());
+                }
+            }
+            updateTotalPortfolioValue(); // Gesamtwert aktualisieren
         }));
-        priceUpdateTimeline.setCycleCount(Timeline.INDEFINITE); // Läuft unendlich
+        priceUpdateTimeline.setCycleCount(Timeline.INDEFINITE);
         priceUpdateTimeline.play();
+    }
+
+    // NEUE METHODE: Berechnet und aktualisiert den Gesamtwert des Portfolios
+    private void updateTotalPortfolioValue() {
+        double totalValue = 0.0;
+        for (PortfolioItem item : observablePortfolioItems) {
+            totalValue += item.getCurrentValue();
+        }
+        totalPortfolioValueLabel.setText("Gesamtwert: " + String.format("%.2f", totalValue) + " €");
     }
 }
