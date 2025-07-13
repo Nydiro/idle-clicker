@@ -36,6 +36,11 @@
                     <Font size="14.0" />
                 </font>
             </Label>
+            <Label fx:id="interestRateLabel" text="Zinssatz: 0.000%">
+                <font>
+                    <Font size="14.0" />
+                </font>
+            </Label>
         </VBox>
     </left>
 
@@ -52,7 +57,7 @@
                     <TableColumn fx:id="nameColumn" prefWidth="150.0" text="Name" />
                     <TableColumn fx:id="priceColumn" prefWidth="100.0" text="Preis (€)" />
                     <TableColumn fx:id="sectorColumn" prefWidth="120.0" text="Sektor" />
-                    </columns>
+                </columns>
             </TableView>
             <HBox alignment="CENTER" spacing="10.0">
                 <Label text="Menge:"/>
@@ -74,18 +79,21 @@
                     <Font size="24.0" />
                 </font>
             </Label>
-            <TableView fx:id="portfolioTableView" prefHeight="250.0" prefWidth="350.0"> <columns>
+            <TableView fx:id="portfolioTableView" prefHeight="250.0" prefWidth="350.0">
+                <columns>
                     <TableColumn fx:id="portfolioSymbolColumn" prefWidth="75.0" text="Symbol" />
                     <TableColumn fx:id="portfolioQuantityColumn" prefWidth="75.0" text="Menge" />
                     <TableColumn fx:id="portfolioValueColumn" prefWidth="100.0" text="Wert (€)" />
-                    <TableColumn fx:id="portfolioProfitLossPercentColumn" prefWidth="100.0" text="G/V (%)" /> </columns>
+                    <TableColumn fx:id="portfolioProfitLossPercentColumn" prefWidth="100.0" text="G/V (%)" />
+                </columns>
             </TableView>
             <Label fx:id="totalPortfolioValueLabel" text="Gesamtwert: 0.00 €">
                 <font>
                     <Font size="18.0" />
                 </font>
             </Label>
-            <Label fx:id="realizedProfitLossLabel" text="Realisierte G/V: 0.00 €"> <font>
+            <Label fx:id="realizedProfitLossLabel" text="Realisierte G/V: 0.00 €">
+                <font>
                     <Font size="18.0" />
                 </font>
             </Label>

@@ -4,7 +4,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.MapChangeListener; // Import hinzufügen
+import javafx.collections.MapChangeListener;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
@@ -15,7 +15,7 @@ import javafx.util.Duration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.text.DecimalFormat; // Import für Formatierung
+import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,6 +27,9 @@ public class GameController {
     private Label moneyLabel;
     @FXML
     private Label wagePerDishLabel;
+    // NEU: FXML-Element für Zinssatz
+    @FXML
+    private Label interestRateLabel;
 
     // --- FXML-Elemente für den Aktienmarkt-Bereich ---
     @FXML
@@ -70,12 +73,16 @@ public class GameController {
     private PlayerPortfolio playerPortfolio;
 
     private Timeline priceUpdateTimeline;
+    // NEU: Timeline für Zinsgutschrift
+    private Timeline interestTimer;
 
     private Map<String, PortfolioItem> portfolioItemsMap = new HashMap<>();
     private ObservableList<PortfolioItem> observablePortfolioItems = FXCollections.observableArrayList();
 
     // Für Formatierung von Prozentwerten
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.00");
+    // NEU: Für Zinssatz-Formatierung
+    private static final DecimalFormat INTEREST_FORMAT = new DecimalFormat("0.000");
 
 
     // --- Initialisierung des Controllers ---
@@ -83,6 +90,8 @@ public class GameController {
     public void initialize() {
         moneyLabel.textProperty().bind(gameService.currentMoneyProperty().asString("Geld: %.2f €"));
         wagePerDishLabel.textProperty().bind(gameService.wagePerDishProperty().asString("Einkommen pro Teller: %.2f €"));
+        // NEU: Binding für Zinssatz-Label
+        interestRateLabel.textProperty().bind(gameService.interestRateProperty().asString("Zinssatz: " + INTEREST_FORMAT.format(gameService.interestRateProperty().get() * 100) + "%% pro Sekunde"));
 
 
         // Setup der Aktien-Tabelle
@@ -98,7 +107,6 @@ public class GameController {
         portfolioSymbolColumn.setCellValueFactory(new PropertyValueFactory<>("symbol"));
         portfolioQuantityColumn.setCellValueFactory(new PropertyValueFactory<>("quantity"));
         portfolioValueColumn.setCellValueFactory(new PropertyValueFactory<>("currentValue"));
-        // Anpassung für prozentuale G/V Anzeige (formatieren)
         portfolioProfitLossPercentColumn.setCellValueFactory(new PropertyValueFactory<>("profitLossPercent"));
         portfolioProfitLossPercentColumn.setCellFactory(column -> new javafx.scene.control.TableCell<PortfolioItem, Double>() {
             @Override
@@ -109,7 +117,6 @@ public class GameController {
                     setStyle("");
                 } else {
                     setText(DECIMAL_FORMAT.format(item) + "%");
-                    // Farbgebung für positive/negative Rendite
                     if (item > 0) {
                         setStyle("-fx-text-fill: green;");
                     } else if (item < 0) {
@@ -124,7 +131,6 @@ public class GameController {
 
         portfolioTableView.setItems(observablePortfolioItems);
 
-        // Initialisiere das Portfolio basierend auf PlayerPortfolio-Daten
         playerPortfolio.getOwnedShares().forEach((symbol, quantityProperty) -> {
             Stock stock = stockExchangeService.getStockBySymbol(symbol);
             if (stock != null) {
@@ -137,15 +143,12 @@ public class GameController {
             }
         });
 
-        // Listener für Änderungen im PlayerPortfolio (Hinzufügen/Entfernen von Positionen)
-        // Korrekte Lambda-Syntax für MapChangeListener
         playerPortfolio.getOwnedShares().addListener((MapChangeListener<String, javafx.beans.property.IntegerProperty>) change -> {
             String symbol = change.getKey();
             Stock stock = stockExchangeService.getStockBySymbol(symbol);
             if (stock == null) return;
 
             if (change.wasAdded()) {
-                // Nur hinzufügen, wenn es eine neue Position ist
                 if (portfolioItemsMap.get(symbol) == null) {
                     int quantity = change.getValueAdded().get();
                     double avgBuyPrice = playerPortfolio.getAverageBuyPrice(symbol);
@@ -155,16 +158,13 @@ public class GameController {
                     portfolioItemsMap.put(symbol, item);
                     observablePortfolioItems.add(item);
                 } else {
-                    // Wenn die Aktie bereits existiert, aktualisiere nur die Menge und den durchschnittlichen Kaufpreis
                     PortfolioItem item = portfolioItemsMap.get(symbol);
                     item.setQuantity(change.getValueAdded().get());
                     item.setAverageBuyPrice(playerPortfolio.getAverageBuyPrice(symbol));
-                    item.setCurrentValue(item.getQuantity() * stock.getCurrentPrice()); // Wert aktualisieren
-                    item.updateProfitLossPercent(); // Und Prozentsatz
+                    item.setCurrentValue(item.getQuantity() * stock.getCurrentPrice());
                 }
 
             } else if (change.wasRemoved()) {
-                // Wenn eine Aktie komplett verkauft wurde (Menge 0)
                 PortfolioItem itemToRemove = portfolioItemsMap.remove(symbol);
                 if (itemToRemove != null) {
                     observablePortfolioItems.remove(itemToRemove);
@@ -174,7 +174,9 @@ public class GameController {
 
         realizedProfitLossLabel.textProperty().bind(playerPortfolio.realizedProfitLossProperty().asString("Realisierte G/V: %.2f €"));
 
+
         startPriceUpdateTimer();
+        startInterestTimer(); // NEU: Starte den Zins-Timer
     }
 
     @FXML
@@ -209,10 +211,8 @@ public class GameController {
             gameService.spendMoney(totalCost);
             playerPortfolio.addShares(selectedStock.getSymbol(), quantity, selectedStock.getCurrentPrice());
 
-            // PortfolioItem Aktualisierung, sollte aber primär über den MapChangeListener gehen.
-            // Hier nur für den Fall, dass die Binding-Kette nicht sofort greift.
             PortfolioItem item = portfolioItemsMap.get(selectedStock.getSymbol());
-            if (item != null) { // Wenn Item bereits existiert (z.B. nach einem weiteren Kauf)
+            if (item != null) {
                 item.setQuantity(playerPortfolio.getShares(selectedStock.getSymbol()));
                 item.setAverageBuyPrice(playerPortfolio.getAverageBuyPrice(selectedStock.getSymbol()));
                 item.setCurrentValue(item.getQuantity() * selectedStock.getCurrentPrice());
@@ -257,7 +257,6 @@ public class GameController {
 
             gameService.addMoney(revenue);
 
-            // PortfolioItem Aktualisierung, sollte aber primär über den MapChangeListener gehen.
             PortfolioItem item = portfolioItemsMap.get(selectedStock.getSymbol());
             if (item != null) {
                 int newQuantity = playerPortfolio.getShares(selectedStock.getSymbol());
@@ -285,7 +284,7 @@ public class GameController {
             for (PortfolioItem item : observablePortfolioItems) {
                 Stock stock = stockExchangeService.getStockBySymbol(item.getSymbol());
                 if (stock != null) {
-                    item.setCurrentValue(item.getQuantity() * stock.getCurrentPrice()); // Aktualisiert auch profitLossPercent intern
+                    item.setCurrentValue(item.getQuantity() * stock.getCurrentPrice());
                 }
             }
             updateTotalPortfolioValue();
@@ -293,6 +292,16 @@ public class GameController {
         priceUpdateTimeline.setCycleCount(Timeline.INDEFINITE);
         priceUpdateTimeline.play();
     }
+
+    // NEU: Timer für Zinsgutschrift
+    private void startInterestTimer() {
+        interestTimer = new Timeline(new KeyFrame(Duration.seconds(1), event -> {
+            gameService.applyInterest();
+        }));
+        interestTimer.setCycleCount(Timeline.INDEFINITE);
+        interestTimer.play();
+    }
+
 
     private void updateTotalPortfolioValue() {
         double totalValue = 0.0;

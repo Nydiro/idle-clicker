@@ -7,8 +7,10 @@ import org.springframework.stereotype.Service;
 @Service
 public class GameService {
 
-    private final DoubleProperty currentMoney = new SimpleDoubleProperty(50.0); // Startkapital auf 50.0 € geändert
-    private final DoubleProperty wagePerDish = new SimpleDoubleProperty(0.50); // Start-Einkommen pro Teller
+    private final DoubleProperty currentMoney = new SimpleDoubleProperty(50.0);
+    private final DoubleProperty wagePerDish = new SimpleDoubleProperty(0.50);
+    // NEU: Zinssatz pro Intervall (z.B. pro Sekunde)
+    private final DoubleProperty interestRate = new SimpleDoubleProperty(0.001); // 0.1% pro Intervall
 
     public DoubleProperty currentMoneyProperty() {
         return currentMoney;
@@ -20,6 +22,11 @@ public class GameService {
 
     public DoubleProperty wagePerDishProperty() {
         return wagePerDish;
+    }
+
+    // NEU: Getter für Zinssatz
+    public DoubleProperty interestRateProperty() {
+        return interestRate;
     }
 
     public void washDish() {
@@ -56,5 +63,22 @@ public class GameService {
 
     public boolean canAfford(double amount) {
         return currentMoney.get() >= amount;
+    }
+
+    // NEU: Methode zur Zinsgutschrift
+    public void applyInterest() {
+        if (currentMoney.get() > 0 && interestRate.get() > 0) {
+            double interestEarned = currentMoney.get() * interestRate.get();
+            currentMoney.set(currentMoney.get() + interestEarned);
+            // Optional: System.out.println("Zinsen erhalten: " + String.format("%.2f", interestEarned) + " €");
+        }
+    }
+
+    // Optional: Methode zum Erhöhen des Zinssatzes (für zukünftige Upgrades)
+    public void increaseInterestRate(double amount) {
+        if (amount > 0) {
+            interestRate.set(interestRate.get() + amount);
+            System.out.println("Zinssatz erhöht auf: " + String.format("%.3f", interestRate.get() * 100) + "% pro Intervall");
+        }
     }
 }
