@@ -10,7 +10,7 @@ import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
 
-import java.io.IOException; // Dieser Import ist notwendig
+import java.io.IOException;
 
 public class IdleClickerApplication extends Application {
 
@@ -18,9 +18,7 @@ public class IdleClickerApplication extends Application {
 
     @Override
     public void init() {
-        // Initialisiert den Spring ApplicationContext
-        // und registriert diese JavaFX Application Instanz als Spring Bean.
-        applicationContext = new SpringApplicationBuilder(Launcher.class) // Nutze Launcher.class
+        applicationContext = new SpringApplicationBuilder(Launcher.class)
                 .sources(IdleClickerApplication.class)
                 .initializers((ApplicationContextInitializer<GenericApplicationContext>) applicationContext -> {
                     applicationContext.registerBean(Application.class, () -> this);
@@ -30,16 +28,18 @@ public class IdleClickerApplication extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("main-view.fxml")); // Korrekter Pfad
-        fxmlLoader.setControllerFactory(applicationContext::getBean); // Wichtig für Spring @Autowired
+        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("main-view.fxml"));
+        fxmlLoader.setControllerFactory(applicationContext::getBean);
 
         Scene scene;
         try {
-            scene = new Scene(fxmlLoader.load(), 1200, 700); // Angepasste Größe
+            scene = new Scene(fxmlLoader.load(), 1200, 700);
+            // NEU: CSS-Datei zur Szene hinzufügen
+            scene.getStylesheets().add(getClass().getResource("dark-theme.css").toExternalForm());
         } catch (IOException e) {
             e.printStackTrace();
             System.err.println("Fehler beim Laden der FXML-Datei: main-view.fxml");
-            throw e; // Wirf die Exception weiter, um den Fehler anzuzeigen
+            throw e;
         }
 
         stage.setTitle("Idle Clicker Game");

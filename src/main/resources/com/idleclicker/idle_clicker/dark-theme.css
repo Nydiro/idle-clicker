@@ -1,0 +1,118 @@
+/* src/main/resources/com/idleclicker/idle_clicker/dark-theme.css */
+
+/* Allgemeine Hintergrundfarbe für die Szene/Applikation */
+.root {
+    -fx-background-color: #2b2b2b; /* Dunkelgrau */
+    -fx-text-fill: #e0e0e0; /* Helles Grau für Text */
+}
+
+/* Labels */
+.label {
+    -fx-text-fill: #e0e0e0;
+}
+
+/* Buttons */
+.button {
+    -fx-background-color: #4a4a4a; /* Etwas helleres Dunkelgrau */
+    -fx-text-fill: #e0e0e0;
+    -fx-border-color: #6a6a6a;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+}
+
+.button:hover {
+    -fx-background-color: #5a5a5a; /* Noch etwas heller beim Hover */
+}
+
+.button:pressed {
+    -fx-background-color: #3a3a3a; /* Dunkler beim Drücken */
+}
+
+/* Textfelder */
+.text-field {
+    -fx-control-inner-background: #3c3c3c; /* Dunkler Hintergrund für Eingabe */
+    -fx-text-fill: #e0e0e0;
+    -fx-highlight-fill: #007acc; /* Akzentfarbe für Auswahl */
+    -fx-highlight-text-fill: #ffffff;
+    -fx-prompt-text-fill: #a0a0a0;
+    -fx-border-color: #6a6a6a;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+}
+
+/* TableView Hintergrund */
+.table-view {
+    -fx-base: #3c3c3c; /* Basis-Farbe für die Tabelle */
+    -fx-control-inner-background: #3c3c3c;
+    -fx-background-color: #3c3c3c;
+    -fx-table-cell-border-color: #555555; /* Trennlinien der Zellen */
+    -fx-table-header-border-color: #555555;
+    -fx-padding: 0;
+}
+
+/* TableView Header */
+.table-view .column-header-background {
+    -fx-background-color: #4a4a4a;
+}
+
+.table-view .column-header, .table-view .filler {
+    -fx-size: 30px;
+    -fx-border-width: 0 1px 1px 0;
+    -fx-border-color: #555555;
+    -fx-background-color: transparent;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: #e0e0e0;
+    -fx-font-weight: bold;
+}
+
+/* TableView Zellen */
+.table-row-cell {
+    -fx-background-color: -fx-table-cell-border-color, #3c3c3c;
+    -fx-background-insets: 0, 0 0 1 0;
+    -fx-padding: 0;
+}
+
+.table-row-cell:odd {
+    -fx-background-color: -fx-table-cell-border-color, #333333; /* Leichte Streifenoptik */
+}
+
+.table-row-cell:selected {
+    -fx-background-color: #007acc; /* Akzentfarbe für ausgewählte Zeile */
+    -fx-table-cell-border-color: #007acc;
+}
+
+.table-cell {
+    -fx-text-fill: #e0e0e0;
+    -fx-border-color: transparent transparent #555555 transparent; /* Trennlinien unten */
+    -fx-font-size: 13px;
+}
+
+/* Meldungs-Label (z.B. messageLabel) */
+.label#messageLabel {
+    -fx-text-fill: #ff6a6a; /* Dunkles Rot für Fehlermeldungen */
+    -fx-font-weight: bold;
+}
+
+/* Optional: ScrollPane */
+.scroll-pane {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar .track-background {
+    -fx-background-color: #3c3c3c;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #6a6a6a;
+    -fx-background-insets: 2, 0, 0;
+    -fx-background-radius: 2em;
+}
+
+.scroll-bar .increment-button, .scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
