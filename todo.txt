@@ -1,3 +1,4 @@
 Fill todo file with ideas
 - Irgendwie was regionales einbringen? Wie bei dem ZombieSpiel von Yannik?
 - Die UI überarbeiten, es sollte einen cleanen aber einzigartigen Look haben, der zu dem Thema der Finanzen passt
+- Irgendwas sinnvolles mal wieder machen und DURCHZIEHEN
